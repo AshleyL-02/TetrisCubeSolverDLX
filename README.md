@@ -18,7 +18,7 @@ ____________________________________________________________________
 - Displays solutions using p5.js
   
 ## ALGORITHMS
-**Simple recursive backtracking:**
+- **Simple recursive backtracking:**
     - To find a solution:
         - Place pieces until target figure is filled
           - To place a piece:
@@ -30,7 +30,7 @@ ____________________________________________________________________
         - Remove a piece from the previous solution
         - Continue placing pieces until a solution is found
 
-**Algorithm X and dancing links:** based on Donald Knuth's article on dancing links and dlx
+- **Algorithm X and dancing links:** based on Donald Knuth's article on dancing links and dlx
     - To solve constraint matrix:
         - If no columns, save solution and return false (matrix is solved)   
         - Choose a column with the least nodes
