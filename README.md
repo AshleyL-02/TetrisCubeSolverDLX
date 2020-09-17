@@ -2,8 +2,7 @@
 
 Finds and displays solutions for the Tetris and Soma cubes, 3d block assembly puzzles.
 
-Application page: https://tetris-cube-solver-dlx-v3.glitch.me/
-
+Application page: https://tetris-cube-solver-dlx-v3.glitch.me/  
 Glitch code: https://glitch.com/edit/#!/tetris-cube-solver-dlx-v3
   
 ____________________________________________________________________
