@@ -66,7 +66,7 @@ let userInterface = { //handles everything based on user options, using state ma
     this.algorithmRadio.changed(this.updateSolver);
 
     //solution
-    createDiv("Find solution:");
+    createDiv("Press button to find solution(s):");
     this.findNextButton = createButton("Find Next");
     this.findNextButton.mouseClicked(this.findNextSolution);
     //this.findNextButton = createButton("Find Next (w/ Display)"); //TODO
