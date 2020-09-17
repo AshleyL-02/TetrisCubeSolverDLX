@@ -1,19 +1,15 @@
-/* global PieceRotation, create3dBoolArray, PieceCollection, Vector3 */
+/* global cubeDisplay, push, pop, fill, translate, box, PieceRotation, create3dBoolArray, PieceCollection, Vector3 */
 
 /*
-Constraint matrix definitions: (using tetris cube as example)
-- Each column in the matrix is a position in the target cube, labeled height, depth, width (zyx) -> hdw
-    - e.g. column labels: "000", "001", "002", "003", "010", ... "332", "333"
-    - Number of columns is 4x4x4 = 64 columns
-- Each row in the matrix is a piece with a certain rotation, labeled P#,R#,POS so like "0,0,211" (with pos as hdw)
-    - e.g. row labels: "0,0,000", "0,0,001", ... "11,23,someposition"
-    - Number of rows is:
-        - 551 for Soma cube
-- ConstraintMatrix has a reference to the head node, which points to the first and last columns and rows
+  Constraint matrix definitions:
+  - Each column in the matrix is a position in the target cube, labeled height, depth, width (hdw); or a piece labeled p(n)
+      - e.g. position labels: "000", "001", "002", "003", "010", ... "332", "333"
+      - e.g. piece labels: "p0", "p1" ...
+  - Each row in the matrix is a piece with a certain rotation and position in the cube
 */
 
-//Matrix-solving algorithm X (with dancing links)
-//solveMatrix function:
+// Matrix-solving algorithm X (with dancing links), based on Donald Knuth's article on dancing links and dlx
+// solveMatrix function:
     //if no columns, terminate successfully   
     //choose a column with the least nodes
       //if the column has zero nodes terminate unsuccessfully (return false)
@@ -33,36 +29,59 @@ Constraint matrix definitions: (using tetris cube as example)
 
 
 class SolverDLX{
-  constructor(type = "TETRIS"){
-    this.constraintMatrix = new ConstraintMatrix(type);
+  constructor(type, cubeLength){
+    this.constraintMatrix = new ConstraintMatrix(type, cubeLength);
     //set up mutables
     this.solution = [];  //array of nodes
-    this.solutionCount = 0;
+        
+    this.solutions = []; //array of pieceSolutions
+    this.foundAllSolutions = false;
+    this.timeElapsed =0; //time taken to find solutions
     
-    //solve    
-    this.solveMatrix();
+    this.pieceSolutionForDisplay = []; //solution currently being displayed
     
-    //setup for display
-    this.convertSolutionToPieceSolution(); //for display
-    
-    //print solution
-    //console.log("DONE SOLVING: with " + this.solutionCount + " solutions.")
-    // this.printSolution();
+    this.findAll; //true if all solutions should be found
+    this.solutionGenerator = this.solveMatrix();
   }
-  solveMatrix(){  //solves dancing links matrix for exact cover; returns true if solved  
-    // console.log("--------------------- solveMatrix ---------------------------")
-    // this.printSolution();
-    // this.printMatrix();
-    
+  findAllSolutions(){ //returns true if there were solutions to find
+    if(this.foundAllSolutions === false){
+      let startTime = new Date();
+      
+      this.findAll = true;
+      this.solutionGenerator.next();
+      this.foundAllSolutions = true;
+      
+      this.timeElapsed += new Date() - startTime;
+      return true;
+    }
+    return false;
+  }
+  findNextSolution(){ //returns true if solution was found
+    if(this.foundAllSolutions === false){
+      let startTime = new Date();
+
+      this.findAll = false;
+      this.foundAllSolutions = this.solutionGenerator.next().done;
+      if(this.foundAllSolutions){
+        return false; //if generator returned true, that means solution wasn't found (ran out of solutions)
+      }
+      
+      this.timeElapsed += new Date() - startTime;
+      return true;
+    }  
+    return false;
+  }
+  *solveMatrix(){  //solves dancing links matrix for exact cover; finds all solutions
     let head = this.constraintMatrix.head;
-    
     //if no columns, terminate successfully
-    if(head === head.right){
+    if(head === head.right){ //solution found
       //count solutions
-      this.solutionCount++;
-      //console.log(this.solutionCount);
+      this.solutions.push(this.convertCurrentSolutionToPieceSolution());
+      
+      if(this.findAll === false){
+        yield; //yield until more solutions are needed
+      } 
       return false;
-      //return true;
     }
     
     //choose the target column with min size
@@ -106,11 +125,7 @@ class SolverDLX{
       //DONE REMOVING NODES
 
       // matrix has been fully updated so call solveMatrix again
-      let wasSolved = this.solveMatrix();
-      if(wasSolved){
-        //console.log("Upward matrix solved. ");
-        return true;
-      }
+      yield* this.solveMatrix();
       
       // matrix wasn't solved with this partial solution:
       // remove node from partial solution
@@ -194,9 +209,10 @@ class SolverDLX{
     }
     console.log(string);
   }
-  // public method for display
-  convertSolutionToPieceSolution(){
-    this.pieceSolution = []; //array of objects with color and positions property; index corresponds to pieceIndex; 
+  
+  //DISPLAY METHODS
+  convertCurrentSolutionToPieceSolution(){ //returns pieceSolution
+    let pieceSolution = []; //array of objects with color and positions property; index corresponds to pieceIndex; 
     let pieces = this.constraintMatrix.pieceCollection.pieces;
     
     for(let rowNode of this.solution){ //for each node in solution
@@ -222,27 +238,51 @@ class SolverDLX{
       }
       
       piece.positions = positions;
-      
       //add piece to pieceSolution
-      this.pieceSolution[pieceIndex] = piece;
-    }    
+      pieceSolution[pieceIndex] = piece;
+    }
+    return pieceSolution;
+  }
+  setSolutionForDisplay(index){
+    this.pieceSolutionForDisplay = this.solutions[index];
+  }
+  displaySolution(){ //called every frame (if solver is selected)
+    for(let piece of this.pieceSolutionForDisplay){
+      this.displayPiece(piece);
+    }
+  }
+  displayPiece(piece){
+    let unit = cubeDisplay.unit;
+    let pad = cubeDisplay.padding;
+    
+    let p = piece.positions[0];
+    let dx = p.x *(pad -1);
+    let dy = p.y *(pad -1);
+    let dz = p.z *(pad -1);
+    
+
+    //display pieces
+    push();
+    fill(piece.color);
+
+    for(let position of piece.positions){
+      push();
+      //p5 coordinates differ from cuboid coordinates
+      translate((dx +position.x)*unit, (dz +position.z)* -unit, (dy +position.y)* -unit);
+      box(unit);
+      pop();
+    }
+
+    pop();
   }
 }
 
 
 class ConstraintMatrix{  //implements dancing links (quadruple linked list) to represent sparse matrix
-  constructor(type){ 
+  constructor(type, cubeLength){ 
     //setup pieces and cubeLength
     this.pieceCollection = new PieceCollection(type);
-    
-    this.cubeLength =4;
-    if(type === "SOMA"){
-      this.cubeLength =3;
-    } else if (type === "TEST") {
-      this.cubeLength = 2;
-    } else if(type !== "TETRIS"){
-      console.log("ERROR: invalid type entered into constraint matrix: " + type);
-    }
+    this.cubeLength = cubeLength;
     
     let totalPieces = this.pieceCollection.getLength();
     
@@ -297,9 +337,6 @@ class ConstraintMatrix{  //implements dancing links (quadruple linked list) to r
         
       } //rotated piece end
     } //piece end    
-    
-    // // print matrix
-    // console.log(this.toString()); 
   }
   
   //PRIVATE accessors
@@ -497,10 +534,10 @@ class ConstraintMatrix{  //implements dancing links (quadruple linked list) to r
 }
 
 class Node{
-  constructor(value){ //up, down, left, and right properties are injected externally
+  //column nodes have properties: value, up, down, left, right; size
+  //nodes have properties: value (1), up, down, left, right; column
+  constructor(value){ //properties are injected externally by constraint matrix
     this.value = value;
   }
 }
 
-//column nodes have properties: value, up, down, left, right; size
-//nodes have properties: value (1), up, down, left, right; column

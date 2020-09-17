@@ -112,7 +112,7 @@ let testPieces = {
 }
 
 class Piece{
-  constructor(index, originalPiece, color = 255){
+  constructor(index, originalPiece, color){
     this.index = index;
     this.originalPiece = originalPiece;
     this.color = color;
@@ -161,47 +161,49 @@ class PieceCollection{
   constructor(type) {
     if (type === "SOMA") {
         this.construtorForSoma();
-    } else if (type === "TEST") {
-        this.constructorForTest();
-    } else {
+    } else if (type === "TETRIS") {
         this.constructorForTetris();
+    } else if(type === "TEST"){
+      this.constructorForTest();
     }
   }
+  
   constructorForTest() {
     this.pieces = [];
 
-    colorMode(HSB, 255);
+    //colorMode(HSB, 255);
     this.pieces[0] = new Piece(0, testPieces.a, color(160, 200, 255));
     this.pieces[1] = new Piece(1, testPieces.b, color(160, 200, 195));
     this.pieces[2] = new Piece(2, testPieces.c, color(160, 210, 135));
-    colorMode(RGB, 255);
+    //colorMode(RGB, 255);
 
     this.length = this.pieces.length;
   }
+  
   constructorForTetris(){
     this.pieces = [];
-    colorMode(HSB, 255);    
+    //colorMode(HSB, 255);    
     this.pieces[0] = new Piece(0, tetrisPieces.blueLRightIn, color(160,200,255));
-    this.pieces[1] = new Piece(1, tetrisPieces.blueLMidIn, color(160,200,195));
-    this.pieces[2] = new Piece(2, tetrisPieces.blueGunRight, color(160,210,135));
-    this.pieces[3] = new Piece(3, tetrisPieces.blueZRightOut, color(160,230,85));
+    this.pieces[1] = new Piece(1, tetrisPieces.blueLMidIn, color(167,230,205));
+    this.pieces[2] = new Piece(2, tetrisPieces.blueGunRight, color(173,245,185));
+    this.pieces[3] = new Piece(3, tetrisPieces.blueZRightOut, color(180,255,150));
 
-    this.pieces[4] = new Piece(4, tetrisPieces.redStaffRight, color(250,200,255));
-    this.pieces[5] = new Piece(5, tetrisPieces.redL, color(250,200,195));
-    this.pieces[6] = new Piece(6, tetrisPieces.redLRightOut, color(250,210,135));
-    this.pieces[7] = new Piece(7, tetrisPieces.redCubeBottomRightOut, color(250,230,85));
+    this.pieces[4] = new Piece(4, tetrisPieces.redStaffRight, color(255,225,255));
+    this.pieces[5] = new Piece(5, tetrisPieces.redL, color(250, 255, 205));
+    this.pieces[6] = new Piece(6, tetrisPieces.redLRightOut, color(245,255,155));
+    this.pieces[7] = new Piece(7, tetrisPieces.redCubeBottomRightOut, color(240,250,100));
 
-    this.pieces[8] = new Piece(8, tetrisPieces.yellowFaucetTop, color(30,200,255));
-    this.pieces[9] = new Piece(9, tetrisPieces.yellowFaucetDotCom, color(30,200,195));
-    this.pieces[10] = new Piece(10, tetrisPieces.yellowLRightIn, color(30,210,135));
-    this.pieces[11] = new Piece(11, tetrisPieces.yellowDisjointedZRightIn, color(30,230,85));
-    colorMode(RGB, 255);
+    this.pieces[8] = new Piece(8, tetrisPieces.yellowFaucetTop, color(34,225,255));
+    this.pieces[9] = new Piece(9, tetrisPieces.yellowFaucetDotCom, color(32,240,220));
+    this.pieces[10] = new Piece(10, tetrisPieces.yellowLRightIn, color(30,255,195));
+    this.pieces[11] = new Piece(11, tetrisPieces.yellowDisjointedZRightIn, color(28,225,160));
+    //colorMode(RGB, 255);
     
     this.length = this.pieces.length;
   }
   construtorForSoma(){
     this.pieces = [];
-    colorMode(HSB, 255);    
+    //colorMode(HSB, 255);    
     this.pieces[0] = new Piece(0, somaPieces.v, color(240,150,250));
     this.pieces[1] = new Piece(1, somaPieces.l, color(50,150,250));
     this.pieces[2] = new Piece(2, somaPieces.t, color(70,150,250));
@@ -209,18 +211,18 @@ class PieceCollection{
     this.pieces[4] = new Piece(4, somaPieces.a, color(140,150,250));
     this.pieces[5] = new Piece(5, somaPieces.b, color(160,150,250));
     this.pieces[6] = new Piece(6, somaPieces.p, color(180,150,250));
-    colorMode(RGB, 255);
+    //colorMode(RGB, 255);
     
     this.length = this.pieces.length;
   }
-  
+  /*
   reset(){
     let len = this.getLength();
     for(let i =0; i<len; i++){
       this.pieces[i].reset();
     }
   }
-  
+  */
   getLength(){
     return this.length;
   }

@@ -1,242 +1,273 @@
-/* global SolverDLX, ConstraintMatrix, Solver, Vector3, box, translate, push, pop, camera, orbitControl, debugMode, WEBGL, frameRate, createCanvas, strokeWeight, background, stroke, strokeFill, key, noFill, fill */
+/* global HSB, createButton, createSelect, createDiv, createRadio, colorMode, PuzzleCube, SolverDLX, 
+  ConstraintMatrix, Solver, Vector3, box, translate, push, pop, camera, orbitControl, debugMode, WEBGL, frameRate, 
+  createCanvas, strokeWeight, background, stroke, strokeFill, key, noFill, fill */
 
-// CONTROLS: 'r' to reset camera view, mouse l/r buttons to change view
+// * Note that the simple recursive backtracking algorithm fails to find all solutions (e.g. 460/480 for soma). Fix later?
 
-// Non-dlx times:
+// To avoid rotational symmetry of solutions, piece 1 can't rotate for tetris and soma cubes
+
+// SRB times:
   // Tetris cube: Takes ~20 seconds, on average, to find a solution
   // Soma cube: takes ~0.376 milliseconds, on average, to find a solution
 
-// DLX times: 
-  // Tetris cube: Takes ~38 seconds, on average, to find a solution
-  //Soma cube: takes ~0.087 milliseconds, on average, to find solution; ~20 ms to create dancing links matrix
-
-
-// Count solutions for soma cube: 460 when piece index 1 is rotationally locked
-
-// optimization: 
-  // TODO: check if there are secluded spaces less than the size of the minimum block each time piece is placed
-  // fix 460 count for non-dlx solver
+// DLX times: (roughly 10x faster than non-dlx)
+  // Tetris cube: Takes ~90 milliseconds, on average, to find a solution
+  // Soma cube: takes ~0.087 milliseconds, on average, to find solution
 
 // COORDINATE SYSTEM: note p5 coordinates differ from these "cuboid coordinates"
   // cuboid coordinates: (x, y, z) = width, depth, height = Vector3 (x, y, z)
     // values run from 0-n
     // array[z][y][x] is how a unit at position (x, y, z) is accessed from a 3d bool array
 
-let cubeDisplay = {
-  unit: 20,  //size of one unit cube
-  padding: 1.1,  //padding is >1
-  dimensions: undefined,  //dimensions of bounding cube, in "pixels", in p5 coordinates (may be negative)
-  center: undefined, //center of bounding box
-  
-  setBoundingCubeDimensions: function(dim){
-    let unit = this.unit;
-    let pad = this.padding;
-    this.dimensions = new Vector3((pad*dim.x)*unit, (pad*dim.z)* -unit, (pad*dim.y)* -unit);
-    this.center = new Vector3((this.dimensions.x -unit *pad)/2 , (this.dimensions.y +unit*pad)/2, (this.dimensions.z +unit*pad)/2);
-  }, 
-}
-
-let mySolver;
-let startTime;
-
-//dlx code
-let mySolverDLX;
-
+// P5 METHODS
 function setup() {
   // Canvas & color settings
-  createCanvas(800, 800, WEBGL);  
+  createCanvas(600, 400, WEBGL);  
   debugMode();  
-  frameRate(60);
-  
+  frameRate(60);  
   strokeWeight(0.5);
+  colorMode(HSB, 255);
   
-  //setup cubeDisplay dimensions and then camera
-  cubeDisplay.setBoundingCubeDimensions(new Vector3(3, 3, 3));  //! remember to change
-  resetCamera(); 
-  
-  //run code
-  startTime = new Date();
-  
-  //dlx code
-  
-  let count = 80;
-  for(let i =0; i<count; i++){
-    mySolverDLX = new SolverDLX("SOMA");
-  }
-  console.log((new Date() - startTime)/(480*count) + " milliseconds per solution" );
-  
-  //mySolverDLX = new SolverDLX("TETRIS");
-  //console.log((new Date() - startTime)/(20) + " milliseconds per solution" );
-  /*
-  let count = 150;
-  for(let i =0; i<count; i++){
-    mySolver = new Solver(new Vector3(3, 3, 3), "SOMA");
-    mySolver.findAllSolutions();
-  }
-  console.log((new Date() - startTime)/(460*count) + " milliseconds per solution" );
-  */
-  
-  //alert(new Date() - startTime + "milliseconds")
+  //ui
+  userInterface.setup();
 }
 
 function draw() {  
   background(204);
   orbitControl();
-  displayCubeDebug();
+  cubeDisplay.displayCubeDebug();
   
-  
-  //displaySolutionDLX();
-  //displayEachSolution();
-  
-  //displayPieceOrder(mySolverDLX.pieceOrder, mySolverDLX.pieceCollection);
-  displayPieceOrder(mySolver.pieceOrder, mySolver.pieceCollection);
+  userInterface.updateDisplay();  
 }
 
 function keyTyped(){
   if(key === 'r' || key === 'R'){
-    resetCamera();
-  }
-  
-}
-
-//DLX DISPLAY METHODS
-function displaySolutionDLX(){
-  for(let piece of mySolverDLX.pieceSolution){
-    displayPieceDLX(piece);
+    cubeDisplay.resetCamera();
   }
 }
-function displayPieceDLX(piece){
-  let unit = cubeDisplay.unit;
-  let pad = cubeDisplay.padding;
-  
-  //display pieces
-  push();
-  fill(piece.color);
-  
-  for(let position of piece.positions){
-    push();
-    //p5 coordinates differ from cuboid coordinates
-    translate((pad*position.x)*unit, (pad*position.z)* -unit, (pad*position.y)* -unit);
-    box(unit);
-    pop();
-  }
-  
-  pop();
-}
 
+// DISPLAY OBJECTS
+let userInterface = { //handles everything based on user options, using state machine
+  setup: function(){ //creates and displays all cube options
+    //cube type
+    createDiv("Cube type:");
+    this.cubeRadio = createRadio();
+    this.cubeRadio.option("Soma");
+    this.cubeRadio.option("Tetris");
+    this.cubeRadio.selected("Soma");
+    this.cubeRadio.changed(this.updateSolver);
 
-//METHODS
-// function displayEachSolution(){
-//   if(mySolver.foundAllSolutions === false){
-//     mySolver.findNextSolution();
-//     mySolver.solutionCount++;   
-//     mySolver.saveCurrentSolution();
-//     avgTimePerSolution =Math.floor(new Date() - startTime)/mySolver.solutionCount;
-//     console.log("Avg. time per solution: " + avgTimePerSolution + " ms.");
-//   }  else if(timeElapsed === undefined){
-//     timeElapsed = Math.floor(new Date() - startTime);
-//     avgTimePerSolution = timeElapsed/mySolver.solutionCount;
-//     alert("All solutions found. Elapsed: " + timeElapsed + " ms. Avg. time per solution: " + avgTimePerSolution + " ms.");
-//   }
-// }
-// function displaySolving(){
-//   for(let i=0; i<8000; i++){
-//     if(mySolver.isSolved === false){
-//       mySolver.placeNextPiece();   
-//     } else if(timeElapsed === undefined){
-//       timeElapsed = Math.floor(new Date() - startTime);
-//       alert("Elapsed: " + timeElapsed + " ms.");
-//     }else{
-//       break;
-//     }
-//   }
+     //algorithm
+    createDiv("Algorithm type:");
+    this.algorithmRadio = createRadio();
+    this.algorithmRadio.option("Simple Recursive Backtracking", "srb");
+    this.algorithmRadio.option("Algorithm X and Dancing Links", "dlx");
+    this.algorithmRadio.selected("srb");
+    this.algorithmRadio.changed(this.updateSolver);
+
+    //solution
+    createDiv("Find solution:");
+    this.findNextButton = createButton("Find Next");
+    this.findNextButton.mouseClicked(this.findNextSolution);
+    //this.findNextButton = createButton("Find Next (w/ Display)"); //TODO
+    this.findAllButton = createButton("Find All");
+    this.findAllButton.mouseClicked(this.findAllSolutions);
     
-// }
-function resetCamera(){
-  let cen = cubeDisplay.center;
-  camera(cen.x, cen.y, 200, cen.x, cen.y, cen.z, 0, 1, 0);
-}
-function displayCubeDebug(){
-  push();
-  //display origin
-  fill('RED');
-  box(1);
+    //select solution
+    createDiv("Display solution by index:");
+    this.somaSelect = {srb: this.createSolutionSelect(), dlx: this.createSolutionSelect(),};
+    this.tetrisSelect = {srb: this.createSolutionSelect(), dlx: this.createSolutionSelect(),};
+    
+    //directions
+    createDiv("<br/><strong>Directions:</strong>"
+              +"<br/>- Select desired cube type and algorithm.<br/>- Press 'Find Next' or 'Find All' to find solution(s)."
+              +"<br/>- Drag mouse L/R to change view. Press 'R' to reset view."
+              +"<br/>*Tetris Cube may take a few seconds to find a SRB solution.");
+    
+    //set table variables
+    this.solutionRow = document.getElementById("rSol");
+    this.averageRow = document.getElementById("rAvg");
+    this.tableIndex; //index for row cell
+    
+    //create puzzle cubes
+    this.tetrisCube = new PuzzleCube("TETRIS");
+    this.somaCube = new PuzzleCube("SOMA");
+    
+    //mutables
+    this.currentSolver = this.somaCube.solver;
+    this.currentSolutionSelect = this.somaSelect.srb;
+        
+    //update
+    this.updateSolver();
+  },
+  createSolutionSelect: function(){ //called by constructor; returns select
+    let select = createSelect();
+    select.changed(userInterface.updateCurrentSolution);
+    select.hide();
+    select.length =0;
+    return select;
+  },
   
-  //display bounding cube
-  noFill();
-  stroke('WHITE');
-  
-  let dim = cubeDisplay.dimensions;
-  let cen = cubeDisplay.center;
-
-  translate(cen.x, cen.y, cen.z);
-  box(dim.x, dim.y, dim.z);
-  
-  pop();
-}
-
-//DISPLAY METHODS
-function displayPieceOrder(pieceOrder, pieceCollection){  
-  let length = pieceOrder.length;
-  for(let i =0; i < length; i++){
-    let pieceIndex = pieceOrder[i];
-    displayPiece(pieceCollection.pieces[pieceIndex]);
-  }
-}
-
-function displayTargetFigure(){  //for debug
-  let dim = mySolver.dim;
-  let tf = mySolver.targetFigure;
-  
-  let unit = cubeDisplay.unit;
-  let pad = cubeDisplay.padding;  
-  
-  push();
-  fill('WHITE'); 
-  for(let z = 0; z < dim.z; z++){
-    for(let y = 0; y < dim.y; y++){
-      for(let x = 0; x < dim.x; x++){
-        if(tf[z][y][x] === true){
-          push();
-          //p5 coordinates differ from cuboid coordinates
-          translate((pad*x)*unit, (pad*z)* -unit, (pad*y)* -unit);
-          box(unit -5);
-          pop();
-        }        
-      }
+  //callback functions (avoid "this.")
+  updateSolver: function(){ // updates based on cube and algorithm radios
+    let puzzleCube;  
+    let selectCube;
+    let prevSelect = userInterface.currentSolutionSelect;
+    let currSelect;
+    
+    //initially show buttons
+    userInterface.findNextButton.show();
+    userInterface.findAllButton.show();
+    
+    //get puzzleCube and select type from radio, update findAll button
+    if(userInterface.cubeRadio.value() === "Soma"){
+      puzzleCube = userInterface.somaCube;
+      selectCube = userInterface.somaSelect;
+      userInterface.tableIndex = 0;
+    } else{ //tetris
+      puzzleCube = userInterface.tetrisCube;
+      selectCube = userInterface.tetrisSelect;
+      userInterface.tableIndex = 1;
+      
+     userInterface.findAllButton.hide();
     }
-  }   
-  pop();
+    
+    //update current solver and current select
+    if(userInterface.algorithmRadio.value() === "srb"){
+      userInterface.currentSolver = puzzleCube.solver;
+      currSelect = selectCube.srb;
+      userInterface.tableIndex +=1; //just some math to get the right index
+    } else{ //tetris
+      userInterface.currentSolver = puzzleCube.solverDLX;
+      currSelect = selectCube.dlx;
+      userInterface.tableIndex +=3;
+    }
+    //setup buttons
+    if(userInterface.currentSolver.foundAllSolutions){
+      userInterface.findNextButton.hide();
+      userInterface.findAllButton.hide();
+    }
+    //setup current select
+    prevSelect.hide();
+    currSelect.show();
+    userInterface.currentSolutionSelect = currSelect;
+    
+    //set cubeDisplay
+    cubeDisplay.setBoundingCubeDimensions(puzzleCube.length);
+    
+    //update solution display
+    userInterface.updateCurrentSolution();  
+  },
+  updateTable: function(){
+    let totalSolutions = userInterface.currentSolver.solutions.length;
+    userInterface.solutionRow.cells[userInterface.tableIndex].innerHTML = totalSolutions;
+    userInterface.averageRow.cells[userInterface.tableIndex].innerHTML = (userInterface.currentSolver.timeElapsed/totalSolutions).toPrecision(3);
+  },
+  findNextSolution: function(){
+    //update solution select with new option
+    if(userInterface.currentSolver.findNextSolution()){ //if a solution was found
+      //add solution to select
+      let index = userInterface.currentSolver.solutions.length -1;
+      userInterface.addIndexToSolutionSelect(index);
+      
+      //select last solution and display it
+      userInterface.currentSolutionSelect.selected("" +  index);
+      userInterface.updateCurrentSolution();
+      
+      //update table time
+      userInterface.updateTable();
+    } else{
+      //all solutions were found, remove find next and find all buttons //TODO
+      userInterface.findNextButton.hide();
+      userInterface.findAllButton.hide(); 
+    }
+  },
+  findAllSolutions: function(){
+    //if there were solutions to find
+    if(userInterface.currentSolver.findAllSolutions()){
+      //add solutions to select
+      let totalSolutions = userInterface.currentSolver.solutions.length;
+      userInterface.addIndicesToSolutionSelect(totalSolutions);
+
+      //select last solution and display it
+      if(totalSolutions >=1){
+        userInterface.currentSolutionSelect.selected("" +  totalSolutions-1);
+        userInterface.updateCurrentSolution();
+      }
+      
+      //update table time
+      userInterface.updateTable();
+      
+      //remove find all button
+      userInterface.findNextButton.hide();
+      userInterface.findAllButton.hide();
+    }
+  },
+  
+  updateCurrentSolution(){ //sets userInterface.updateDisplay to desired display function
+    let index = userInterface.currentSolutionSelect.value();
+    if(index !== ""){
+      index = parseInt(index, 10);
+      //get solution at index and display it
+      userInterface.currentSolver.setSolutionForDisplay(index);
+    } 
+  },
+  updateDisplay(){ //called every frame
+    this.currentSolver.displaySolution();
+  },
+  
+  //Solution Select updating methods
+  addIndicesToSolutionSelect(maxIndex){ //adds indices until before maxIndex
+    for(let i =userInterface.currentSolutionSelect.length; i<maxIndex; i++){
+      userInterface.addIndexToSolutionSelect(i);
+    }
+  },
+  addIndexToSolutionSelect(index){
+    userInterface.currentSolutionSelect.option("" + index);
+    userInterface.currentSolutionSelect.length++;
+  },
 }
 
-function displayPiece(piece){
-  let unit = cubeDisplay.unit;
-  let pad = cubeDisplay.padding;
+
+
+let cubeDisplay = {
+  zoom: 120, //lower = closer
+  unit: 20,  //size of one unit cube
+  padding: 1.15,  //padding is >1
+  dimensions: undefined,  //dimensions of bounding cube, in "pixels", in p5 coordinates (may be negative)
+  center: undefined, //center of bounding box
   
-  let pArray = piece.currentPiece;
-  let pos = piece.position;
+  setBoundingCubeDimensions: function(cubeLength){
+    let unit = this.unit;
+    let pad = this.padding;
+    this.dimensions = new Vector3((pad*cubeLength)*unit, (pad*cubeLength)* -unit, (pad*cubeLength)* -unit);
+    this.center = new Vector3((this.dimensions.x -unit *pad)/2 , (this.dimensions.y +unit*pad)/2, (this.dimensions.z +unit*pad)/2);
+    
+    this.resetCamera();
+  }, 
   
-  let zm = pArray.length;
-  let ym = pArray[0].length;
-  let xm = pArray[0][0].length;
+  // general display
+  displayCubeDebug: function(){ //called every frame
+    push();
+    
+    //display origin
+    fill('RED');
+    box(1);
+    
+    //display bounding cube
+    noFill();
+    stroke('WHITE');
+    let dim = cubeDisplay.dimensions;
+    let cen = cubeDisplay.center;
+    translate(cen.x, cen.y, cen.z);
+    box(dim.x, dim.y, dim.z);
+
+    pop();
+  },
   
-  //display pieces
-  push();
-  fill(piece.color);
-  
-  for(let z = 0; z < zm; z++){  //go through each unit in piece
-    for(let y = 0; y < ym; y++){
-      for(let x = 0; x < xm; x++){
-        if(pArray[z][y][x] === true){
-          push();
-          //p5 coordinates differ from cuboid coordinates
-          translate((pad*pos.x+ x)*unit, (pad*pos.z+ z)* -unit, (pad*pos.y+ y)* -unit);
-          box(unit);
-          pop();
-        }        
-      }
-    }
-  } 
-  
-  pop();
+  // camera
+  resetCamera: function(){
+    let cen = cubeDisplay.center;
+    camera(cen.x, cen.y, cubeDisplay.zoom, cen.x, cen.y, cen.z, 0, 1, 0);
+  },
 }

@@ -1,6 +1,4 @@
-/* global PieceRotation, create3dBoolArray, PieceCollection, Vector3, color, colorMode, RGB, HSB */
-
-//considers the cube solved if the target figure is completely filled
+/* global box, translate, cubeDisplay, push, pop, fill, PieceRotation, create3dBoolArray, PieceCollection, Vector3, color, colorMode, RGB, HSB */
 
 /*
 Algorithm: 
@@ -10,116 +8,82 @@ Algorithm:
         Find empty position in target figure
         Find unused piece and test its rotations; continue until a piece fits
       If no pieces fit, remove the last piece
-      Go back to place a piece, picking up from the next rotation of removed piece
+      Place a piece, picking up from the next rotation of removed piece
       
 - To find next solution:
     Remove a piece from the previous solution
     Continue placing pieces until a solution is found
-    If piece 0 with rotation 0 is tested at the first position
-      in the target figure again, there are no more solutions left
 */
 
 class Solver {   
-  constructor(dim, type = "TETRIS"){
+  //considers the cube solved if the target figure is completely filled
+  constructor(type, dim){
     this.dim = dim;  //dimensions
-    this.type = type;
 
     //mutables
-    this.targetFigure = create3dBoolArray(dim);  //the figure being built on
+    this.targetFigure = create3dBoolArray(dim);  //the figure being built on to prevent piece intersections
     this.pieceCollection = new PieceCollection(type);
     this.pieceOrder = [];  //list of pieceIndexes in the order they're placed
-    this.startingPieces = [];  //integers representing the first piece tested for any index in pieceOrder
+    this.startingPieces = [];  //integers representing the first piece tested for any index in pieceOrder (prevents repeat testing)
     
     this.foundAllSolutions = false;
     this.isSolved = false;
-    this.solutionCount =0;
-    
     this.solutions = [];
-  }
-  reset(){
-    this.targetFigure = create3dBoolArray(this.dim);  //the figure being built on
-    this.pieceCollection.reset();
-    this.pieceOrder = [];  //list of pieceIndexes in the order they're placed
-    this.startingPieces = [];  //integers representing the first piece tested for any index in pieceOrder
+    this.timeElapsed = 0; //time taken to find solutions
     
-    this.foundAllSolutions = false;
-    this.isSolved = false;
-    this.solutionCount =0;
-    
-    this.solutions = [];
-  }
-  
-  saveCurrentSolution(){  //is doing stuff other classes should be doing
-    let solution = [];
-    
-    let len = this.pieceOrder.length;
-    for(let i=0; i<len; i++){
-      let piece = this.pieceCollection.pieces[this.pieceOrder[i]];
-      solution.push({index: piece.index, rotation: piece.rotation});
-    }
-    
-    this.solutions.push(solution);
-  }
+    this.solutionForDisplay = [];
+  } 
   
   //SOLUTION METHODS
-  findAllSolutions(){  //returns number of found solutions
-    while(this.foundAllSolutions === false){
-      this.findNextSolution();
-      this.solutionCount++;   
-      //this.saveCurrentSolution(); //temp
-    }
-    this.solutions.pop();
-    this.solutionCount--;  //last solution is a failed one
+  findAllSolutions(){  //returns true if there were solutions to find
+    if(this.foundAllSolutions === false){
+      let startTime = new Date();
+      while(this.findNextSolution()){} //find all solutions
+      this.timeElapsed += new Date() - startTime;
+      return true;
+    } 
+    return false;
   }
-  
-  findNextSolution(){
-    let p = this.removeLastPiece();
-    if(p !== false){
-      this.placeNextPiece(p);
-    }
-    
+  findNextSolution(){ //returns true if found a solution
     if(this.foundAllSolutions){
         return false;
     }
-    this.isSolved = false;    
+    
+    let startTime = new Date();
+    
+    //remove last piece in cube, if any
+    let p = this.removeLastPiece();
+    if(p === false){
+      p =0;
+    }
+    
+    this.isSolved = false;  
+    this.placeNextPiece(p);
+    
     while(this.isSolved === false){
       this.placeNextPiece();
       if(this.foundAllSolutions){
         return false;
       }
     }
-  }
-  
-  getNextUnusedPiece(startingIndex){  //finds unused piece starting from piece index startingIndex
-    let total = this.pieceCollection.getLength();   
-    let maxI = startingIndex + total;
-    for(let i = startingIndex; i < maxI; i++){
-      let canUseIndex = true;
-      for (let usedPiece of this.pieceOrder) {
-         if(usedPiece ===i %total){
-           canUseIndex = false;
-         }
-      }
-      if(canUseIndex){
-        return this.pieceCollection.pieces[i %total];
-      }
-    }
+    
+    //add solution
+    this.solutions.push(this.getCurrentSolution());
+    this.timeElapsed += new Date() - startTime;
+    return true;
   }
   
   // PIECE-PLACING METHODS
   
-  placeNextPiece(startingIndex =0){  //returns true if piece is placed, false if no solutions are left
-    // console.log("----------------------------- PLACING CUBE PIECE NO. " + (this.pieceOrder.length+1) + " ----------------------------------------")
-    // console.log("\t\t\tPiece order: " + this.pieceOrder.toString());
-    // console.log("\t\t\Starting pieces: " + this.startingPieces.toString());   
+  placeNextPiece(startingIndex =0){  //returns true if piece is placed, false if no solutions are left   
     let emptyPos = this.getNextEmptyPositionInTargetFigure();
     if(emptyPos === false){  //! temp
       this.isSolved = true;
       return false;
     }
-    let testPiece = this.getNextUnusedPiece(startingIndex);
-    let placedPiece;  //true if piece was placed
     
+    let testPiece = this.getNextUnusedPiece(startingIndex);
+    let placedPiece;  //true if piece was placed  
     if(this.startingPieces.length-1 < this.pieceOrder.length){  //haven't placed starting piece yet, try to place starting piece before checking equals starting piece
       this.startingPieces.push(testPiece.index);    
       //test place first piece
@@ -157,10 +121,8 @@ class Solver {
     return this.startingPieces[this.pieceOrder.length] === testPiece.index && testPiece.hasZeroRotation();
   }
   
-  
   placePieceAtEmptyPosition(piece, emptyPos){  //tries to place same piece at position emptyPos, returns true if piece is placed
     //console.log("Testing piece: " + piece.index + ", from rotation: " + piece.rotation + "; Don't return to piece: " + this.startingPieces[this.pieceOrder.length]);
-    
     //if piece came with maxed rotation
     if(piece.isMaxed === true){
       piece.reset();
@@ -189,9 +151,9 @@ class Solver {
     let testPiece = piece.currentPiece;
     
     //find position of a unit block in testPiece array
-    //-- given the way target figure is filled (x, y, then z), 
-    //    the unit block to fit in empty Pos must be z=0 in pieceArray
-    //    and y value must be minimized   
+    //    Given the way target figure is filled (x, y, then z), 
+    //    the unit block to fit in empty Pos must be z=0 in pieceArray.
+    //    X and Y values must be minimized   .
     let pym = testPiece[0].length;
     let pxm = testPiece[0][0].length;
     let x;  //x and y pos in testPiece array
@@ -244,15 +206,13 @@ class Solver {
               //mark position to be set to true
               posToAdd.push(new Vector3(piecePos.x +px, piecePos.y +py, piecePos.z +pz));
             }
-          }
-          
+          }      
         }
       }       
     }    
     
     //actualy place pieces on target figure
-    while(posToAdd.length >0){
-      let pos = posToAdd.pop();
+    for(let pos of posToAdd){
       this.targetFigure[pos.z][pos.y][pos.x] = true;
     }
     //console.log("\t\tPLACED PIECE: " + piece.toString());  
@@ -260,7 +220,6 @@ class Solver {
     this.pieceOrder.push(piece.index);
     return true;
   }
-  
   removeLastPiece(){
     if(this.pieceOrder.length ===0){
       //can't remove piece
@@ -279,21 +238,14 @@ class Solver {
       for(let py = 0; py < pym; py++){
         for(let px = 0; px < pxm; px++){
           if(pArray[pz][py][px]){  //if piece has something there
-            if(this.targetFigure[piecePos.z +pz][piecePos.y +py][piecePos.x +px] === false){  //if intersection
-                console.log("ERROR: trying to remove piece where already empty.");
-            } else{
               //remove unit
-              this.targetFigure[piecePos.z +pz][piecePos.y +py][piecePos.x +px] = false;
-            }
+              this.targetFigure[piecePos.z +pz][piecePos.y +py][piecePos.x +px] = false;           
           }      
         }
       }       
     }  
     
     // console.log("\tNo piece fits, removing last piece: " + piece.toString());
-//      if(piece.index ===0){
-//        console.log("\tRemoving last piece: " + piece.toString());
-//      } 
     
     //remove a startingPiece if needed 
     if(this.startingPieces.length > this.pieceOrder.length){   
@@ -308,6 +260,21 @@ class Solver {
   }
   
   //HELPER METHODS
+  getNextUnusedPiece(startingIndex){  //finds unused piece starting from piece index startingIndex
+    let total = this.pieceCollection.getLength();   
+    let maxI = startingIndex + total;
+    for(let i = startingIndex; i < maxI; i++){
+      let canUseIndex = true;
+      for (let usedPiece of this.pieceOrder) {
+         if(usedPiece ===i %total){
+           canUseIndex = false;
+         }
+      }
+      if(canUseIndex){
+        return this.pieceCollection.pieces[i %total];
+      }
+    }
+  }
   getNextEmptyPositionInTargetFigure(){
       for(let h = 0; h < this.dim.z; h++){
           for(let d = 0; d < this.dim.y; d++){
@@ -320,5 +287,54 @@ class Solver {
       }
     return false;
   }
+  getCurrentSolution(){
+    let solution = [];  
+    for(let pieceIndex of this.pieceOrder){
+      let piece = this.pieceCollection.pieces[pieceIndex];
+      solution.push({index: piece.index, rotation: piece.rotation, position: new Vector3(piece.position.x, piece.position.y, piece.position.z)});
+        //object for storing piece data
+    }
+    return solution;
+  }
+  //SRB DISPLAY METHODS
+  setSolutionForDisplay(index){
+    this.solutionForDisplay = this.solutions[index];
+  }
+  displaySolution(){  //displays solutionForDisplay
+    for(let piece of this.solutionForDisplay){
+      this.displayPiece(piece);
+    }
+  }
+  displayPiece(piece){
+    let unit = cubeDisplay.unit;
+    let pad = cubeDisplay.padding;
 
+    let pColor = this.pieceCollection.pieces[piece.index].color;
+    let pArray = this.pieceCollection.pieces[piece.index].allRotatedPieces[piece.rotation];
+    let pos = piece.position;
+
+    let zm = pArray.length;
+    let ym = pArray[0].length;
+    let xm = pArray[0][0].length;
+
+    //display pieces
+    push();
+    fill(pColor);
+
+    for(let z = 0; z < zm; z++){  //go through each unit in piece
+      for(let y = 0; y < ym; y++){
+        for(let x = 0; x < xm; x++){
+          if(pArray[z][y][x] === true){
+            push();
+            //p5 coordinates differ from cuboid coordinates
+            translate((pad*pos.x+ x)*unit, (pad*pos.z+ z)* -unit, (pad*pos.y+ y)* -unit);
+            box(unit);
+            pop();
+          }        
+        }
+      }
+    } 
+
+    pop();
+  }
 }
