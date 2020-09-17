@@ -5,10 +5,11 @@ Finds and displays solutions for the Tetris and Soma cubes, 3d block assembly pu
 Application page:
 https://tetris-cube-solver-dlx-v3.glitch.me/
 
+
 ________________________________________________________________________________________________________
 OVERVIEW
 - Uses two algorithms to solve Tetris and Soma cubes
-  - Simple recursive backtracking*
+  - Simple recursive backtracking
     - imperfect algorithm, misses solutions
   - Knuth's Algorithm X with dancing links (DLX)
     - finds all solutions
@@ -18,7 +19,7 @@ OVERVIEW
 - Displays solutions using p5.js
 
 ALGORITHMS
-> Simple recursive backtracking: 
+- Simple recursive backtracking: 
     - To find a solution:
         Place pieces until target figure is filled
           To place a piece:
@@ -30,7 +31,7 @@ ALGORITHMS
         Remove a piece from the previous solution
         Continue placing pieces until a solution is found
 
-> Algorithm X and dancing links: based on Donald Knuth's article on dancing links and dlx
+- Algorithm X and dancing links: based on Donald Knuth's article on dancing links and dlx
     - To solve constraint matrix:
         If no columns, save solution and return false (matrix is solved)   
         Choose a column with the least nodes
