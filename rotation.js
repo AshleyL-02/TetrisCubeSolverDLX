@@ -1,9 +1,9 @@
 /* global Vector3, create3dBoolArray */
 
 // piece 1 can't rotate -> solutions won't have rotational symmetry
+    //piece 1 should have maximum possible rotations compared to other pieces
 
-//there's width, depth, and height axis, or w,d,h (new axes)
-//true axis: x, y, z
+// there's width, depth, and height axis, or w,d,h (new axes); correspond to x, y, z
 
 let FACES = 6;
 let ROTATIONS = 4;
@@ -14,7 +14,7 @@ class PieceRotation{
     this.rotation = 0;
   }
   
-  //STATIC METHODS   placement inside this class is weird
+  //STATIC METHODS
   static getAllRotatedPieces(originalPiece){  //returns 2d array containing all rotated piece arrays
     let rotatedPieces = [];
     
@@ -39,8 +39,6 @@ class PieceRotation{
     let pzm = piece.length;
     let pym = piece[0].length;
     let pxm = piece[0][0].length;
-    
-    
     for(let rp of arrayOfPieces){  //iterate through other pieces      
       let zm = rp.length;
       let ym = rp[0].length;
@@ -68,9 +66,7 @@ class PieceRotation{
   }
   static getRotatedPiece(originalPiece, pieceRotation){ // parameters: 3d bool array, pieceRotation
     let axisMatchup = AxisMatchup.getNewAxisMatchup(pieceRotation.face, pieceRotation.rotation);
-    //console.log(axisMatchup.w + ", " + axisMatchup.d + ", " + axisMatchup.h);
     let dimensions = new Vector3(originalPiece[0][0].length, originalPiece[0].length, originalPiece.length);
-
 
     //setup new piece array
     let newPieceDimensions = axisMatchup.getNewDimensions(dimensions);
@@ -91,21 +87,19 @@ class PieceRotation{
         }
       }
     } 
-
     //returns 3d array  
     return newPiece;
   }
 }
 
 // AXIS STUFF
-
 let Axis = {
-  w: 1,  //must start at 1 bc axis uses negative values too and -0 = 0
+  w: 1,  //must start at 1; axis uses negative values and -0 = 0
   d: 2,
   h: 3,
 }
 
-class AxisMatchup {  //for rotating pieces
+class AxisMatchup {  //for rotating pieceArrays
   constructor(){
     //this.w is the new w, which is set to one of the three original axes
     this.w = Axis.w;  // new axis = some old axis
@@ -122,7 +116,6 @@ class AxisMatchup {  //for rotating pieces
     //returns new coordinates based on axis matchup
     return new Vector3(vw, vd, vh);
   }
-  
   getNewDimensions(oldDimensions){
     let vw = this.getNewDimensionValue(this.w, oldDimensions);  //value for the w axis
     let vd = this.getNewDimensionValue(this.d, oldDimensions);
@@ -152,7 +145,6 @@ class AxisMatchup {  //for rotating pieces
     }
     console.log("ERROR: Invalid axisType inputted: " + axisType);
   }
-  
   getNewDimensionValue(axisType, oldDimensions){  //gets a coordinate value from -coordinates- based on axisType
     if(Axis.w === Math.abs(axisType)){
       return oldDimensions.x;
@@ -164,7 +156,6 @@ class AxisMatchup {  //for rotating pieces
     console.log("ERROR: Invalid axisType inputted: " + axisType);
   }
   
-  
   //STATIC METHODS
   static getNewAxisMatchup(targetFace, targetRotation){
     let axisMatchup = new AxisMatchup();
@@ -175,7 +166,6 @@ class AxisMatchup {  //for rotating pieces
   }
   
   //private static methods
-
   static getAxisMatchupFace(axisMatchup, targetFace){  //6 total faces
     let newAxisMatchup = new AxisMatchup();
 

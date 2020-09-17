@@ -4,6 +4,21 @@
     <title>Tetris Cube Solver</title>
     <meta charset="utf-8" />
   </head>
+  <style>
+    table{
+      border-collapse: collapse;
+      text-align: left;
+    }
+    thead{
+      border: 1px solid black;
+      border-bottom: 3px solid black;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 3px;
+    }
+  </style>
+  
   <body>
     <!-- Import p5 -->
     <script src="p5.min.js"></script>
@@ -13,7 +28,42 @@
     <script src="rotation.js"></script>
     <script src="pieces.js"></script>
     <script src="solver.js"></script>
-    <script src="dlx.js"></script>
+    <script src="solverdlx.js"></script>
+    <script src="puzzlecube.js"></script>
     <script src="script.js"></script>
+    
+    <!-- Create stats table-->
+    <table style = "position:absolute; left:620px; top:80px;">
+      <thead>
+        <tr>
+          <th rowspan ="2">Stats</th>
+          <th colspan ="2" width="115">Simple Recursive Backtracking</th>
+          <th colspan ="2" width="115">Algorithm X and Dancing Links</th>
+        </tr>
+        <tr>
+          <th>Soma</th>
+          <th>Tetris</th>
+          <th>Soma</th>
+          <th>Tetris</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr id ="rSol">
+          <td># Solutions found</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr id ="rAvg">
+          <td width = "90">Avg. time taken per solution (ms)</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>
+    
   </body>
 </html>
