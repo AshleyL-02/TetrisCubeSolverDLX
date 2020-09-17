@@ -1,13 +1,12 @@
-# TetrisCubeSolverDLX
+## TetrisCubeSolverDLX
 
 Finds and displays solutions for the Tetris and Soma cubes, 3d block assembly puzzles.
 
 Application page:
 https://tetris-cube-solver-dlx-v3.glitch.me/
-
-
-________________________________________________________________________________________________________
-OVERVIEW
+  
+____________________________________________________________________
+# OVERVIEW
 - Uses two algorithms to solve Tetris and Soma cubes
   - Simple recursive backtracking
     - imperfect algorithm, misses solutions
@@ -17,8 +16,8 @@ OVERVIEW
  
 - To avoid rotational symmetry of solutions, piece 1 can't rotate for either cube
 - Displays solutions using p5.js
-
-ALGORITHMS
+  
+# ALGORITHMS
 - Simple recursive backtracking: 
     - To find a solution:
         Place pieces until target figure is filled
@@ -33,18 +32,18 @@ ALGORITHMS
 
 - Algorithm X and dancing links: based on Donald Knuth's article on dancing links and dlx
     - To solve constraint matrix:
-        If no columns, save solution and return false (matrix is solved)   
-        Choose a column with the least nodes
-          If the column has zero nodes return false (matrix can't be solved)
-        For each node n in the chosen column
-          Include node n in the partial solution
-          For each node p in the row of node n
+        - If no columns, save solution and return false (matrix is solved)   
+        - Choose a column with the least nodes
+          - If the column has zero nodes return false (matrix can't be solved)
+        - For each node n in the chosen column
+          - Include node n in the partial solution
+          - For each node p in the row of node n
             - Remove column of the node
             - Remove all rows containing nodes in the same column as node p
-          Solve remaining constraint matrix (call solveMatrix)
-          Remove n from partial solution
-          Reinsert the removed rows and columns in reverse order to removal
-          Loop down to next node n
-        Column can't be solved therefore current matrix can't be solved, return false
+          - Solve remaining constraint matrix (call solveMatrix)
+          - Remove n from partial solution
+          - Reinsert the removed rows and columns in reverse order to removal
+          - Loop down to next node n
+        - Column can't be solved therefore current matrix can't be solved, return false
 
 Enjoy :)
