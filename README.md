@@ -2,8 +2,8 @@
 
 Finds and displays solutions for the Tetris and Soma cubes, 3d block assembly puzzles.
 
-Application page:
-https://tetris-cube-solver-dlx-v3.glitch.me/
+Application page: https://tetris-cube-solver-dlx-v3.glitch.me/
+Glitch code: https://glitch.com/edit/#!/tetris-cube-solver-dlx-v3
   
 ____________________________________________________________________
 ## Overview
@@ -17,7 +17,7 @@ ____________________________________________________________________
 - To avoid rotational symmetry of solutions, piece 1 can't rotate for either cube
 - Displays solutions using p5.js
   
-## ALGORITHMS
+## Algorithms
 - **Simple recursive backtracking:**
     - To find a solution:
         - Place pieces until target figure is filled
