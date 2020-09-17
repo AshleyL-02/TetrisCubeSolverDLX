@@ -20,15 +20,15 @@ ____________________________________________________________________
 ## ALGORITHMS
 **Simple recursive backtracking:**
     - To find a solution:
-        Place pieces until target figure is filled
-          To place a piece:
-            Find empty position in target figure
-            Find unused piece and test its rotations; continue until a piece fits
-          If no pieces fit, remove the last piece
-          Place a piece, picking up from the next rotation of removed piece
+        - Place pieces until target figure is filled
+          - To place a piece:
+            - Find empty position in target figure
+            - Find unused piece and test its rotations; continue until a piece fits
+          - If no pieces fit, remove the last piece
+          - Place a piece, picking up from the next rotation of removed piece
     - To find next solution:
-        Remove a piece from the previous solution
-        Continue placing pieces until a solution is found
+        - Remove a piece from the previous solution
+        - Continue placing pieces until a solution is found
 
 **Algorithm X and dancing links:** based on Donald Knuth's article on dancing links and dlx
     - To solve constraint matrix:
