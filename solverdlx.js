@@ -8,25 +8,23 @@
   - Each row in the matrix is a piece with a certain rotation and position in the cube
 */
 
-// Matrix-solving algorithm X (with dancing links), based on Donald Knuth's article on dancing links and dlx
-// solveMatrix function:
-    //if no columns, terminate successfully   
-    //choose a column with the least nodes
-      //if the column has zero nodes terminate unsuccessfully (return false)
-    // for each node n in the chosen column
-      // include node n in the partial solution
-      //for each node p in the row of node n
-        // remove column of the node
-        // remove all rows containing nodes in the same column as node p
-      // call solveMatrix again
-        //if returned true:
-          //return true
-        //else:
-          // remove row from partial solution
-          // reinsert the removed rows and columns in reverse order to removal
-          // loop down to next node n
-    //column can't be solved therefore matrix can't be solved, terminate unsuccessfully (return false)
-
+/*
+> Algorithm X and dancing links: based on Donald Knuth's article on dancing links and dlx
+    - To solve constraint matrix:
+        If no columns, save solution and return false (matrix is solved)   
+        Choose a column with the least nodes
+          If the column has zero nodes return false (matrix can't be solved)
+        For each node n in the chosen column
+          Include node n in the partial solution
+          For each node p in the row of node n
+            - Remove column of the node
+            - Remove all rows containing nodes in the same column as node p
+          Solve remaining constraint matrix (call solveMatrix)
+          Remove n from partial solution
+          Reinsert the removed rows and columns in reverse order to removal
+          Loop down to next node n
+        Column can't be solved therefore current matrix can't be solved, return false
+*/
 
 class SolverDLX{
   constructor(type, cubeLength){
